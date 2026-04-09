@@ -19,6 +19,11 @@ __pycache__/
 *.pyd
 .Python
 
+# LaCAM编译输出
+lacam0/build/
+mapf-visualizer/bin/
+mapf-visualizer/obj/
+
 # 编辑器文件
 .vscode/
 .idea/

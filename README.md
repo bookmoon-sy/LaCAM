@@ -60,10 +60,21 @@ make -C build -j4
 
 ### 4. 编译可视化器（可选）
 
+MAPF Visualizer需要openFrameworks。首先安装依赖：
+
 ```bash
+# 安装openFrameworks依赖
 cd mapf-visualizer
+./install_linux.sh
+
+# 下载openFrameworks（约900MB）
+# 脚本会自动下载并解压到third_party/openFrameworks/
+
+# 编译可视化器
 make -j4
 ```
+
+注意：openFrameworks文件较大，首次编译需要较长时间。
 
 ### 5. 启动使用
 

@@ -12,7 +12,7 @@ DEFAULT_SCENARIO="random-32-32-10-random-1.scen"
 DEFAULT_MAP="random-32-32-10.map"
 
 # 主要参数
-DEFAULT_AGENTS=400      # 智能体数量（1-461，不能超过场景文件容量）
+DEFAULT_AGENTS=300      # 智能体数量（1-461，不能超过场景文件容量）
 DEFAULT_VERBOSE=2       # 详细程度（0-3）
 
 # 可选参数

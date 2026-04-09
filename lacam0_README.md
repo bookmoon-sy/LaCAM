@@ -58,6 +58,12 @@ LaCAM（Lazy Constraints for Multi-agent pathfinding）是一个高效的多智�
 
 ## 🚀 快速开始
 
+## 首先输入编译
+```
+make -B build && make -C build -j4
+```
+
+
 ### 方式一：图形界面（推荐新手）
 ```bash
 ./run_gui

@@ -1,0 +1,98 @@
+# LaCAM项目.gitignore文件
+
+# 编译输出和二进制文件
+*.o
+*.so
+*.a
+*.out
+*.exe
+*.dll
+*.dylib
+
+# 编译目录
+build/
+bin/
+obj/
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+
+# 编辑器文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# 日志和临时文件
+*.log
+*.tmp
+*.temp
+*.pid
+*.seed
+*.pid.lock
+
+# 数据文件（大文件）
+*.dat
+*.data
+*.db
+*.sqlite
+*.sqlite3
+
+# 文档生成
+docs/_build/
+docs/_static/
+docs/_templates/
+
+# 测试输出
+test_output/
+test_results/
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# 特定于LaCAM的忽略
+lacam0/build/
+mapf-visualizer/bin/
+mapf-visualizer/build/
+*.user
+*.suo
+*.sdf
+
+# Python虚拟环境
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# 系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 备份文件
+*.bak
+*.backup
+*.old
+*.orig
+*.rej
+
+# 大型数据文件（如果需要可以取消注释）
+# *.map
+# *.scen
+# *.txt
+
+# 第三方依赖
+third_party/
+deps/
+dependencies/

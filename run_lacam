@@ -1,0 +1,6 @@
+#!/bin/bash
+# LaCAM 主启动脚本（指向统一版本）
+# 使用新的统一脚本，所有配置在一个文件中
+
+# 运行统一脚本
+exec /home/sy/Homework/LaCAM/run_lacam_unified "$@"

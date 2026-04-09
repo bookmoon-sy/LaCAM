@@ -1,0 +1,54 @@
+#!/bin/bash
+# LaCAM 图形界面启动脚本
+
+# 切换到脚本所在目录
+cd "$(dirname "$0")" || {
+    echo "错误: 无法切换到脚本目录"
+    exit 1
+}
+
+echo "启动 LaCAM 图形界面..."
+echo "项目目录: $(pwd)"
+echo ""
+
+# 检查Python3
+if ! command -v python3 &> /dev/null; then
+    echo "错误: 找不到 python3"
+    echo "请安装 Python3: sudo apt install python3"
+    exit 1
+fi
+
+# 检查Tkinter
+if ! python3 -c "import tkinter" 2>/dev/null; then
+    echo "错误: 找不到 Tkinter"
+    echo "请安装 Tkinter: sudo apt install python3-tk"
+    exit 1
+fi
+
+# 检查LaCAM可执行文件
+if [ ! -f "lacam0/build/main" ]; then
+    echo "警告: 找不到 lacam0/build/main"
+    echo "请先编译LaCAM项目:"
+    echo "  cd lacam0"
+    echo "  make -C build -j4"
+    echo ""
+    read -p "是否继续？(y/n): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+fi
+
+# 运行GUI
+echo "正在启动图形界面..."
+python3 tools/lacam_gui.py
+
+# 检查运行结果
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "图形界面已关闭"
+else
+    echo ""
+    echo "图形界面运行异常"
+    exit 1
+fi

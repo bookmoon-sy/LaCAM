@@ -1,0 +1,363 @@
+#!/bin/bash
+# LaCAM 统一启动脚本
+# 功能：一键启动LaCAM，支持所有参数，所有默认值集中配置
+# 使用：./run_lacam_unified [参数]
+
+# ============================================
+# 🎯 默认参数配置区（只需修改这里！）
+# ============================================
+
+# 必需参数
+DEFAULT_SCENARIO="random-32-32-10-random-1.scen"
+DEFAULT_MAP="random-32-32-10.map"
+
+# 主要参数
+DEFAULT_AGENTS=400      # 智能体数量（1-461，不能超过场景文件容量）
+DEFAULT_VERBOSE=2       # 详细程度（0-3）
+
+# 可选参数
+DEFAULT_SEED=0          # 随机种子
+DEFAULT_TIME_LIMIT=3    # 时间限制（秒）
+DEFAULT_OUTPUT="./build/result.txt"  # 输出文件
+
+# 标志参数（true/false）
+DEFAULT_ANYTIME=false          # 启用实时优化
+DEFAULT_NO_PIBT_SWAP=false     # 禁用PIBT交换
+DEFAULT_NO_PIBT_HINDRANCE=false # 禁用PIBT阻碍
+
+# ============================================
+# 🚀 脚本主逻辑（不要修改下面的代码）
+# ============================================
+
+# LaCAM项目目录
+LACAM_DIR="/home/sy/Homework/LaCAM/lacam0"
+
+# 检查LaCAM目录是否存在
+if [ ! -d "$LACAM_DIR" ]; then
+    echo "❌ 错误: 找不到LaCAM目录 $LACAM_DIR"
+    exit 1
+fi
+
+# 切换到LaCAM目录
+cd "$LACAM_DIR" || {
+    echo "❌ 错误: 无法切换到LaCAM目录 $LACAM_DIR"
+    exit 1
+}
+
+# 显示帮助信息
+show_help() {
+    echo "LaCAM 统一启动脚本"
+    echo "=================="
+    echo ""
+    echo "使用方法: $0 [选项]"
+    echo ""
+    echo "选项:"
+    echo "  -h, --help                 显示此帮助信息"
+    echo "  -s, --scenario FILE        场景文件 (默认: $DEFAULT_SCENARIO)"
+    echo "  -m, --map FILE             地图文件 (默认: $DEFAULT_MAP)"
+    echo "  -N, --agents NUM           智能体数量 (默认: $DEFAULT_AGENTS)"
+    echo "  -v, --verbose LEVEL        详细程度 0-3 (默认: $DEFAULT_VERBOSE)"
+    echo "  --seed NUM                 随机种子 (默认: $DEFAULT_SEED)"
+    echo "  -t, --time-limit SEC       时间限制(秒) (默认: $DEFAULT_TIME_LIMIT)"
+    echo "  -o, --output FILE          输出文件 (默认: $DEFAULT_OUTPUT)"
+    echo "  --anytime                  启用实时优化（树重连）"
+    echo "  --no-pibt-swap             禁用PIBT交换"
+    echo "  --no-pibt-hindrance        禁用PIBT阻碍"
+    echo "  --list-files               列出可用的地图和场景文件"
+    echo "  --explain                  显示参数解释"
+    echo "  --show-config              显示当前默认配置"
+    echo ""
+    echo "示例:"
+    echo "  $0                          # 使用默认配置运行"
+    echo "  $0 -N 200 -v 2              # 自定义智能体数量和详细程度"
+    echo "  $0 --list-files             # 列出可用文件"
+    echo "  $0 --explain                # 显示参数解释"
+    echo "  $0 --show-config            # 显示当前默认配置"
+}
+
+# 显示参数解释
+show_explain() {
+    echo "LaCAM 参数解释"
+    echo "=============="
+    echo ""
+    echo "-i 场景文件 (scenario file)"
+    echo "  包含智能体的起始位置和目标位置"
+    echo "  示例: assets/random-32-32-10-random-1.scen"
+    echo ""
+    echo "-m 地图文件 (map file)"
+    echo "  包含环境的地图信息（障碍物、可通行区域等）"
+    echo "  示例: assets/random-32-32-10.map"
+    echo ""
+    echo "-N 智能体数量 (number of agents)"
+    echo "  要规划的智能体数量"
+    echo "  注意: 不能超过场景文件中的智能体数量"
+    echo "  当前场景文件最大容量: 461"
+    echo "  示例: 400"
+    echo ""
+    echo "-v 详细程度 (verbose level)"
+    echo "  0: 最少输出"
+    echo "  1: 基本输出（默认）"
+    echo "  2: 更多细节"
+    echo "  3: 最详细输出（包含进度信息）"
+    echo ""
+    echo "-s 随机种子 (seed)"
+    echo "  用于复现随机结果的种子值"
+    echo "  默认: 0"
+    echo ""
+    echo "-t 时间限制 (time limit)"
+    echo "  规划的时间限制（秒）"
+    echo "  默认: 3秒"
+    echo ""
+    echo "-o 输出文件 (output file)"
+    echo "  结果输出文件路径"
+    echo "  默认: ./build/result.txt"
+    echo ""
+    echo "--anytime 启用实时优化（树重连）"
+    echo "  无参数，启用后会在规划过程中持续优化"
+    echo ""
+    echo "--no_pibt_swap 禁用PIBT交换"
+    echo "  无参数，禁用PIBT算法的交换操作"
+    echo ""
+    echo "--no_pibt_hindrance 禁用PIBT阻碍"
+    echo "  无参数，禁用PIBT算法的阻碍处理"
+}
+
+# 列出可用的文件
+list_files() {
+    echo "可用的地图文件 (assets/目录下):"
+    echo "=============================="
+    if ls assets/*.map 1>/dev/null 2>&1; then
+        ls assets/*.map | xargs -n1 basename | nl
+    else
+        echo "  未找到地图文件"
+    fi
+    
+    echo ""
+    echo "可用的场景文件 (assets/目录下):"
+    echo "================================"
+    if ls assets/*.scen 1>/dev/null 2>&1; then
+        ls assets/*.scen | xargs -n1 basename | nl
+    else
+        echo "  未找到场景文件"
+    fi
+}
+
+# 显示当前配置
+show_config() {
+    echo "📋 当前默认配置"
+    echo "================"
+    echo ""
+    echo "必需参数:"
+    echo "  场景文件: $DEFAULT_SCENARIO"
+    echo "  地图文件: $DEFAULT_MAP"
+    echo ""
+    echo "主要参数:"
+    echo "  智能体数量: $DEFAULT_AGENTS"
+    echo "  详细程度: $DEFAULT_VERBOSE"
+    echo ""
+    echo "可选参数:"
+    echo "  随机种子: $DEFAULT_SEED"
+    echo "  时间限制: $DEFAULT_TIME_LIMIT 秒"
+    echo "  输出文件: $DEFAULT_OUTPUT"
+    echo ""
+    echo "标志参数:"
+    echo "  实时优化: $DEFAULT_ANYTIME"
+    echo "  禁用PIBT交换: $DEFAULT_NO_PIBT_SWAP"
+    echo "  禁用PIBT阻碍: $DEFAULT_NO_PIBT_HINDRANCE"
+    echo ""
+    echo "💡 修改配置: 编辑本脚本第10-25行的默认参数"
+}
+
+# 初始化变量为默认值
+SCENARIO="$DEFAULT_SCENARIO"
+MAP="$DEFAULT_MAP"
+AGENTS="$DEFAULT_AGENTS"
+VERBOSE="$DEFAULT_VERBOSE"
+SEED="$DEFAULT_SEED"
+TIME_LIMIT="$DEFAULT_TIME_LIMIT"
+OUTPUT="$DEFAULT_OUTPUT"
+ANYTIME=""
+NO_PIBT_SWAP=""
+NO_PIBT_HINDRANCE=""
+
+# 解析命令行参数
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        --explain)
+            show_explain
+            exit 0
+            ;;
+        --list-files)
+            list_files
+            exit 0
+            ;;
+        --show-config)
+            show_config
+            exit 0
+            ;;
+        -s|--scenario)
+            SCENARIO="$2"
+            shift 2
+            ;;
+        -m|--map)
+            MAP="$2"
+            shift 2
+            ;;
+        -N|--agents)
+            AGENTS="$2"
+            shift 2
+            ;;
+        -v|--verbose)
+            VERBOSE="$2"
+            shift 2
+            ;;
+        --seed)
+            SEED="$2"
+            shift 2
+            ;;
+        -t|--time-limit)
+            TIME_LIMIT="$2"
+            shift 2
+            ;;
+        -o|--output)
+            OUTPUT="$2"
+            shift 2
+            ;;
+        --anytime)
+            ANYTIME="--anytime"
+            shift
+            ;;
+        --no-pibt-swap)
+            NO_PIBT_SWAP="--no_pibt_swap"
+            shift
+            ;;
+        --no-pibt-hindrance)
+            NO_PIBT_HINDRANCE="--no_pibt_hindrance"
+            shift
+            ;;
+        *)
+            echo "❌ 错误: 未知选项 $1"
+            show_help
+            exit 1
+            ;;
+    esac
+done
+
+# 如果没有参数，显示运行信息
+if [ $# -eq 0 ]; then
+    echo "🚀 正在运行 LaCAM 默认配置..."
+    echo "📝 使用 --help 查看所有选项"
+    echo "📋 使用 --show-config 查看当前配置"
+    echo ""
+    echo "当前配置:"
+    echo "  场景: assets/$SCENARIO"
+    echo "  地图: assets/$MAP"
+    echo "  智能体: $AGENTS"
+    echo "  详细程度: $VERBOSE"
+    echo ""
+fi
+
+# 检查程序是否存在
+if [ ! -f "build/main" ]; then
+    echo "❌ 错误: 找不到 build/main 程序"
+    echo "当前目录: $(pwd)"
+    echo ""
+    echo "💡 解决方案:"
+    echo "  请先编译LaCAM项目:"
+    echo "  cd /home/sy/Homework/LaCAM/lacam0"
+    echo "  make -C build -j4"
+    exit 1
+fi
+
+# 检查assets目录是否存在
+if [ ! -d "assets" ]; then
+    echo "❌ 错误: 找不到 assets 目录"
+    exit 1
+fi
+
+# 构建命令
+CMD="./build/main -i assets/$SCENARIO -m assets/$MAP -N $AGENTS -v $VERBOSE"
+CMD="$CMD -s $SEED -t $TIME_LIMIT -o $OUTPUT"
+
+if [ -n "$ANYTIME" ]; then
+    CMD="$CMD $ANYTIME"
+fi
+if [ -n "$NO_PIBT_SWAP" ]; then
+    CMD="$CMD $NO_PIBT_SWAP"
+fi
+if [ -n "$NO_PIBT_HINDRANCE" ]; then
+    CMD="$CMD $NO_PIBT_HINDRANCE"
+fi
+
+# 显示要运行的命令
+if [ $# -eq 0 ]; then
+    echo "运行命令:"
+    echo "=========="
+    echo "$CMD"
+    echo "=========="
+    echo ""
+fi
+
+# 运行命令
+eval $CMD
+result=$?
+
+# 检查运行结果
+if [ $result -eq 0 ]; then
+    if [ $# -eq 0 ]; then
+        echo ""
+        echo "=========="
+        echo "✅ LaCAM 运行完成!"
+        echo "=========="
+    fi
+else
+    echo ""
+    echo "=========="
+    echo "❌ LaCAM 运行失败! 返回码: $result"
+    echo "=========="
+    
+    # 提供常见错误解决方案
+    case $result in
+        1)
+            echo "💡 可能原因: 参数错误"
+            echo "   检查智能体数量是否超过场景文件容量"
+            echo "   当前场景文件: $SCENARIO"
+            
+            # 动态获取场景文件的最大智能体数量
+            if [ -f "$LACAM_DIR/assets/$SCENARIO" ]; then
+                # 更准确地计算智能体数量：统计不以'version'开头的行
+                max_agents=$(grep -v "^version" "$LACAM_DIR/assets/$SCENARIO" 2>/dev/null | wc -l)
+                
+                if [ $max_agents -gt 0 ]; then
+                    echo "   最大智能体数量: $max_agents"
+                else
+                    # 备用方法：计算总行数减1
+                    line_count=$(wc -l < "$LACAM_DIR/assets/$SCENARIO" 2>/dev/null)
+                    max_agents=$((line_count - 1))
+                    if [ $max_agents -gt 0 ]; then
+                        echo "   最大智能体数量: $max_agents"
+                    else
+                        echo "   最大智能体数量: 未知（文件格式错误）"
+                    fi
+                fi
+            else
+                echo "   最大智能体数量: 未知（文件不存在）"
+            fi
+            ;;
+        139)
+            echo "💡 可能原因: 段错误（内存不足）"
+            echo "   尝试减少智能体数量: -N 200"
+            ;;
+        *)
+            echo "💡 建议:"
+            echo "   1. 检查参数: ./run_lacam_unified --explain"
+            echo "   2. 减少智能体数量: -N 200"
+            echo "   3. 减少时间限制: -t 1"
+            ;;
+    esac
+    exit $result
+fi

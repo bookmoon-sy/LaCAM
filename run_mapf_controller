@@ -1,0 +1,28 @@
+#!/bin/bash
+# run_mapf_controller - 启动MAPF Visualizer控制器
+
+# 检查Python3
+if ! command -v python3 &> /dev/null; then
+    echo "错误: 需要Python3"
+    echo "请安装: sudo apt-get install python3"
+    exit 1
+fi
+
+# 检查tkinter
+python3 -c "import tkinter" 2>/dev/null
+if [ $? -ne 0 ]; then
+    echo "警告: tkinter未安装"
+    echo "安装: sudo apt-get install python3-tk"
+    # 尝试继续运行
+fi
+
+# 检查mapf-visualizer
+if [ ! -f "mapf-visualizer/bin/mapf-visualizer" ]; then
+    echo "警告: mapf-visualizer 可执行文件不存在"
+    echo "请先编译: cd mapf-visualizer && make"
+    echo "继续启动控制器，但可能无法运行可视化..."
+fi
+
+# 运行控制器
+cd "$(dirname "$0")"
+python3 tools/simple_controller.py

@@ -1,0 +1,166 @@
+#!/bin/bash
+# run_visualizer - 运行 MAPF Visualizer 的简单宏
+# 用法: ./run_visualizer [地图文件] [解决方案文件]
+# 示例: ./run_visualizer assets/random-32-32-20.map assets/demo_random-32-32-20.txt
+
+# 设置颜色输出
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# 显示帮助信息
+show_help() {
+    echo -e "${BLUE}MAPF Visualizer 运行宏${NC}"
+    echo ""
+    echo "用法: $0 [选项] [地图文件] [解决方案文件]"
+    echo ""
+    echo "选项:"
+    echo "  -h, --help     显示此帮助信息"
+    echo "  -t, --test     测试模式，检查文件但不运行"
+    echo ""
+    echo "示例:"
+    echo "  $0                                   # 使用默认示例文件"
+    echo "  $0 assets/random-32-32-20.map assets/demo_random-32-32-20.txt"
+    echo "  $0 --test                           # 只检查文件"
+    echo ""
+    echo "默认示例文件:"
+    echo "  地图: assets/random-32-32-20.map"
+    echo "  解决方案: assets/demo_random-32-32-20.txt"
+}
+
+# 检查是否在正确的目录
+if [ ! -d "mapf-visualizer" ]; then
+    echo -e "${RED}错误: 找不到 mapf-visualizer 目录${NC}"
+    echo "请确保你在 /home/sy/Homework/LaCAM 目录下运行此脚本"
+    exit 1
+fi
+
+cd mapf-visualizer
+
+# 检查可执行文件是否存在
+if [ ! -f "bin/mapf-visualizer" ]; then
+    echo -e "${RED}错误: 找不到 mapf-visualizer 可执行文件${NC}"
+    echo "请先编译项目: cd mapf-visualizer && make"
+    exit 1
+fi
+
+# 解析参数
+TEST_MODE=false
+MAP_FILE=""
+SOLUTION_FILE=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        -t|--test)
+            TEST_MODE=true
+            shift
+            ;;
+        -*)
+            echo -e "${RED}未知选项: $1${NC}"
+            show_help
+            exit 1
+            ;;
+        *)
+            if [ -z "$MAP_FILE" ]; then
+                MAP_FILE="$1"
+            elif [ -z "$SOLUTION_FILE" ]; then
+                SOLUTION_FILE="$1"
+            else
+                echo -e "${RED}参数过多${NC}"
+                show_help
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+# 如果没有提供文件，使用默认示例
+if [ -z "$MAP_FILE" ]; then
+    MAP_FILE="assets/random-32-32-20.map"
+    SOLUTION_FILE="assets/demo_random-32-32-20.txt"
+    echo -e "${YELLOW}使用默认示例文件:${NC}"
+    echo "  地图文件: $MAP_FILE"
+    echo "  解决方案: $SOLUTION_FILE"
+fi
+
+# 检查文件是否存在（先检查绝对路径，再检查相对路径）
+check_file() {
+    local file="$1"
+    if [ -f "$file" ]; then
+        echo "$file"
+        return 0
+    elif [ -f "$(pwd)/$file" ]; then
+        echo "$(pwd)/$file"
+        return 0
+    else
+        return 1
+    fi
+}
+
+# 检查地图文件
+MAP_PATH=""
+if check_file "$MAP_FILE"; then
+    MAP_PATH="$(check_file "$MAP_FILE")"
+elif [ -f "mapf-visualizer/$MAP_FILE" ]; then
+    MAP_PATH="mapf-visualizer/$MAP_FILE"
+else
+    echo -e "${RED}错误: 找不到地图文件 '$MAP_FILE'${NC}"
+    echo "当前目录: $(pwd)"
+    echo "尝试的路径:"
+    echo "  1. $MAP_FILE"
+    echo "  2. $(pwd)/$MAP_FILE"
+    echo "  3. mapf-visualizer/$MAP_FILE"
+    exit 1
+fi
+
+# 检查解决方案文件
+SOLUTION_PATH=""
+if check_file "$SOLUTION_FILE"; then
+    SOLUTION_PATH="$(check_file "$SOLUTION_FILE")"
+elif [ -f "mapf-visualizer/$SOLUTION_FILE" ]; then
+    SOLUTION_PATH="mapf-visualizer/$SOLUTION_FILE"
+else
+    echo -e "${RED}错误: 找不到解决方案文件 '$SOLUTION_FILE'${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}找到文件:${NC}"
+echo "  地图: $MAP_PATH"
+echo "  解决方案: $SOLUTION_PATH"
+
+if [ "$TEST_MODE" = true ]; then
+    echo -e "${GREEN}✓ 测试通过!${NC}"
+    echo "地图文件: $MAP_FILE"
+    echo "解决方案文件: $SOLUTION_FILE"
+    echo "可执行文件: bin/mapf-visualizer"
+    echo ""
+    echo -e "${YELLOW}所有文件检查正常，可以运行可视化器。${NC}"
+    exit 0
+fi
+
+echo -e "${GREEN}启动 MAPF Visualizer...${NC}"
+echo "地图: $MAP_FILE"
+echo "解决方案: $SOLUTION_FILE"
+echo ""
+
+# 运行可视化器
+echo -e "${BLUE}运行命令: ./bin/mapf-visualizer \"$MAP_PATH\" \"$SOLUTION_PATH\"${NC}"
+echo ""
+./bin/mapf-visualizer "$MAP_PATH" "$SOLUTION_PATH"
+
+# 检查运行状态
+EXIT_CODE=$?
+echo ""
+if [ $EXIT_CODE -eq 0 ]; then
+    echo -e "${GREEN}✓ 可视化完成!${NC}"
+else
+    echo -e "${RED}✗ 可视化运行失败 (退出码: $EXIT_CODE)${NC}"
+    exit $EXIT_CODE
+fi
